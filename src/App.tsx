@@ -339,7 +339,7 @@ function App() {
           </div>
         </div>
         
-        {/* Export Section - Fixed at bottom */}
+        {/* Export Section - Commented out for now
         <div className="border-t border-gray-200 h-[180px] flex items-center p-4 bg-white">
           <button 
             onClick={handleCompareClick}
@@ -350,6 +350,7 @@ function App() {
             <span className="text-sm text-indigo-200">View detailed comparison</span>
           </button>
         </div>
+        */}
       </div>
 
       <ComparisonModal
