@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: number;
@@ -8,9 +9,10 @@ interface Message {
 
 interface ChatBubbleProps {
   message: Message;
+  isFirstMessage?: boolean;
 }
 
-export default function ChatBubble({ message }: ChatBubbleProps) {
+export default function ChatBubble({ message, isFirstMessage = false }: ChatBubbleProps) {
   const isUser = message.sender === 'user';
 
   return (
@@ -18,11 +20,13 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       <div
         className={`max-w-md rounded-2xl px-4 py-3 ${
           isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 text-gray-800'
+            ? 'bg-gray-100 text-gray-800'
+            : 'bg-indigo-600 text-white'
         }`}
       >
-        <p className="text-sm">{message.text}</p>
+        <ReactMarkdown className={`${isFirstMessage ? 'text-lg' : 'text-sm'}`}>
+          {message.text}
+        </ReactMarkdown>
       </div>
     </div>
   );

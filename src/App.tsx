@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, CheckSquare, Package, Download } from 'lucide-react';
 import Requirements from './components/Requirements';
 import ChatBubble from './components/ChatBubble';
@@ -48,45 +48,80 @@ type ApiCandidate = {
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "I need a laptop for video editing", sender: "user" },
-    { id: 2, text: "I recommend checking these high-performance laptops that are perfect for video editing.", sender: "assistant" },
+    { id: 1, text: "Hi!\n\nI'm Hanu, your AI consultant.\n\nTell me what products, tools, or software you are looking for, and I'll find the best options across the internet tailored to your requirements!", sender: "assistant" },
   ]);
   const [inputText, setInputText] = useState("");
 
   const [requirements, setRequirements] = useState<Requirement[]>([
-    { id: 1, text: "16GB RAM minimum" },
-    { id: 2, text: "Dedicated GPU" },
-    { id: 3, text: "i7 or better processor" },
-    { id: 4, text: "4K display" },
+    { id: 1, text: "Start chatting for collecting your requirements." },
   ]);
 
   const [products, setProducts] = useState<Product[]>([
     {
       id: 1,
-      title: "ProBook Studio",
+      title: "Hanu.ai",
       url: "https://askhanu.com/",
-      overview: "High-performance laptop with 32GB RAM, RTX 4070, i9-13900H processor perfect for video editing and creative work.",
-    },
-    {
-      id: 2,
-      title: "CreatorBook Pro",
-      url: "https://www.producthunt.com/",
-      overview: "Premium creator laptop featuring 64GB RAM, RTX 4080, i9-13950HX processor with Mini LED display.",
+      overview: "Get your tasks done with the first AI Agent Marketplace",
     },
   ]);
 
-  const suggestedQuestions = [
-    "What's the battery life of these laptops?",
-    "Do they come with warranty coverage?",
-  ];
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([
+    // "What's ",
+    // "Do they come ",
+    // "What's",
+    // "Do they ",
+    // "What's the ",
+    // "Do they come ",
+    // "What's",
+    // "Do they ",
+    // "What's the ",
+    // "What's the ",
+    // "Do they come ",
+    // "What's",
+    // "Do they ",
+    // "What's the ",
+    // "Do they come with warranty coverage dfasddfafdfdfsd?",
+    // "What's the battery life of these laptops?",
+    // "Do they come with warranty coverage?",
+    // "What's the battery life of these laptops?",
+    // "Do they come with warranty coverage?",
+  ]);
 
   const [requirementMatches, setRequirementMatches] = useState<RequirementMatch[]>([]);
 
   const [threadId] = useState(() => uuidv4());
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [countdown, setCountdown] = useState(120); // 2 minutes in seconds
+  const [countdownInterval, setCountdownInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isLoading) return;
+
+    setIsLoading(true);
+    setCountdown(120); // Reset countdown to 120 seconds
+    
+    // Start countdown
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 0) {
+          clearInterval(interval);
+          return 0; // Keep at 0 instead of resetting to 120
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    setCountdownInterval(interval);
 
     const newUserMessage: Message = {
       id: messages.length + 1,
@@ -156,9 +191,14 @@ function App() {
         sender: "assistant"
       };
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+      setCountdown(120);
+      setIsLoading(false); // Only set loading to false after API response
+      setInputText("");
     }
-
-    setInputText("");
   };
 
   const handleCompareClick = () => {
@@ -177,48 +217,103 @@ function App() {
     setIsModalOpen(true);
   };
 
+  const handleSuggestionClick = (text: string) => {
+    // Append text to input field with a space
+    setInputText(prev => prev ? `${prev} ${text}` : text);
+    
+    // Remove the clicked suggestion from the list
+    setSuggestedQuestions(prev => prev.filter(q => q !== text));
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Requirements Panel */}
-      <div className="w-96 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+      <div className="w-[20%] bg-white border-r border-gray-200 p-4 overflow-y-auto">
         <div className="flex items-center space-x-2 mb-6">
           <CheckSquare className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-800">Requirements</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Your Requirements:</h2>
         </div>
         <Requirements items={requirements} />
       </div>
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4" ref={chatContainerRef}>
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center space-x-2 mb-8">
-              <MessageSquare className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Chat Assistant</h2>
+              <MessageSquare className="w-8 h-8 text-indigo-600" />
+              <h2 className="text-4xl font-semibold text-gray-800">Hanu.ai</h2>
             </div>
-            {messages.map((message) => (
-              <ChatBubble key={message.id} message={message} />
+            {messages.map((message, index) => (
+              <ChatBubble 
+                key={message.id} 
+                message={message} 
+                isFirstMessage={index === 0}
+              />
             ))}
           </div>
         </div>
-        <div className="p-4 border-t border-gray-200 bg-white">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex gap-3 mb-4">
+        <div className="p-4 border-t border-gray-200 bg-white relative">
+          <div className="max-w-4xl mx-auto">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="text-indigo-600 font-medium">
+                    Processing... {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 mb-4 max-h-[85px] overflow-y-hidden">
               {suggestedQuestions.map((question, index) => (
-                <SuggestedQuestion key={index} text={question} />
+                <SuggestedQuestion 
+                  key={index} 
+                  text={question} 
+                  onClick={handleSuggestionClick}
+                  disabled={isLoading}
+                />
               ))}
             </div>
             <form onSubmit={handleSendMessage} className="flex space-x-4">
-              <input
-                type="text"
+              <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={isLoading}
+                style={{ 
+                  minHeight: '40px',
+                  maxHeight: '120px',
+                  lineHeight: '24px',
+                  height: 'auto',
+                  resize: 'none',
+                  overflowY: 'auto',
+                  padding: '8px 16px'
+                }}
+                className={`flex-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  isLoading ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '40px';
+                  const newHeight = Math.min(target.scrollHeight, 120);
+                  target.style.height = `${newHeight}px`;
+                }}
               />
               <button 
                 type="submit"
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                disabled={isLoading}
+                className={`px-6 py-2 rounded-lg transition-colors h-fit ${
+                  isLoading 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-indigo-600 hover:bg-indigo-700'
+                } text-white`}
               >
                 Send
               </button>
@@ -228,21 +323,24 @@ function App() {
       </div>
 
       {/* Products Panel */}
-      <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
-        <div className="p-4">
-          <div className="flex items-center space-x-2 mb-6">
-            <Package className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Recommended</h2>
-          </div>
-          <div className="space-y-2">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+      <div className="w-[25%] bg-white border-l border-gray-200 flex flex-col">
+        {/* Products List Section */}
+        <div className="flex-1 overflow-hidden">
+          <div className="p-4">
+            <div className="flex items-center space-x-2 mb-6">
+              <Package className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-semibold text-gray-800">Recommended Products</h2>
+            </div>
+            <div className="space-y-2 overflow-y-auto h-[calc(100vh-280px)]">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
         </div>
         
-        {/* Export Section */}
-        <div className="mt-auto p-4 border-t border-gray-200">
+        {/* Export Section - Fixed at bottom */}
+        <div className="border-t border-gray-200 h-[180px] flex items-center p-4 bg-white">
           <button 
             onClick={handleCompareClick}
             className="w-full bg-indigo-600 text-white p-8 rounded-lg hover:bg-indigo-700 transition-colors flex flex-col items-center justify-center space-y-2"
